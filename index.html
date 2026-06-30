@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>みんなであみだくじ Firestore版 v4</title>
+  <title>みんなであみだくじ</title>
   <style>
     :root{
       --bg1:#fff7b8; --bg2:#dff7ff; --bg3:#ffe1f0; --card:#ffffff;
@@ -18,7 +18,10 @@
     header{padding:18px 4px 10px;text-align:center}
     h1{font-size:clamp(28px,6vw,48px);margin:0 0 6px;letter-spacing:.04em}
     .lead{margin:0;color:#475569;font-weight:700}
-    .steps{background:rgba(255,255,255,.88);border:2px solid rgba(255,255,255,.95);border-radius:var(--radius);padding:14px 16px;margin:18px 0;box-shadow:0 10px 24px rgba(40,48,68,.10)}
+    .versionNote{margin:18px auto 0;text-align:center;font-size:12px;color:rgba(100,116,139,.55);font-weight:700}
+    .heroArt{display:flex;justify-content:center;margin:10px auto 0;max-width:420px;filter:drop-shadow(0 10px 18px rgba(40,48,68,.14))}
+    .heroArt svg{min-width:0;width:100%;height:auto;touch-action:auto}
+    .steps{background:rgba(255,255,255,.91);border:2px solid rgba(255,255,255,.95);border-radius:var(--radius);padding:14px 16px;margin:18px 0;box-shadow:0 10px 24px rgba(40,48,68,.10)}
     .stepsTitle{font-weight:900;margin:0 0 10px;color:#be185d}
     .stepList{display:grid;grid-template-columns:1fr;gap:8px}
     @media(min-width:760px){.stepList{grid-template-columns:repeat(6,1fr)}}
@@ -47,8 +50,15 @@
     .ok{background:#dcfce7;border-color:#86efac;color:#166534}
     .bad{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
     .small{font-size:14px;color:#64748b;line-height:1.6}
-    .qrBox{display:grid;place-items:center;background:white;border-radius:20px;border:2px dashed #cbd5e1;padding:14px;margin-top:10px}
-    .qrBox img{width:190px;height:190px;image-rendering:pixelated}
+    .qrBox{display:grid;place-items:center;background:linear-gradient(180deg,#fff,#f8fbff);border-radius:24px;border:3px dashed #5ac8fa;padding:16px;margin-top:10px}
+    .qrBox img{width:min(260px,86vw);height:min(260px,86vw);image-rendering:pixelated}
+    .qrBox.zoomable{cursor:pointer;position:relative;transition:.15s transform,.15s box-shadow}.qrBox.zoomable:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(90,200,250,.22)}.qrZoomHint{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:7px 11px;border-radius:999px;background:#fff0f6;color:#be185d;border:2px solid #ffc4dc;font-weight:900;font-size:13px}
+    .modalBackdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px}.modalBackdrop.show{display:flex}.qrModal{width:min(560px,94vw);background:linear-gradient(180deg,#ffffff,#fff7fb);border-radius:28px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.32);text-align:center;border:4px solid #ffd0e2}.qrModal img{width:min(430px,82vw);height:min(430px,82vw);image-rendering:pixelated}.qrModal h2{color:#be185d;margin-bottom:6px}.modalClose{margin-top:12px}.cuteBadge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:#fff7ed;border:2px solid #fed7aa;color:#9a3412;font-weight:900}
+    .shareBox{background:#f0f9ff;border:2px solid #bae6fd;border-radius:18px;padding:12px;margin-top:12px}
+    .copyRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    .copyRow input{font-size:14px;padding:10px 11px}
+    details.hostDetails{margin-top:12px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:16px;padding:10px 12px}
+    details.hostDetails summary{cursor:pointer;font-weight:900;color:#64748b}
     .boardWrap{overflow:auto;background:white;border-radius:24px;padding:14px;border:3px solid rgba(90,200,250,.35);position:relative}
     .tapHint{display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;padding:10px 13px;border-radius:999px;background:#ffe4ef;border:2px solid #ff9ec4;color:#be185d;font-weight:900}
     svg{display:block;min-width:600px;width:100%;height:auto;touch-action:manipulation}
@@ -56,7 +66,7 @@
     @keyframes pulseSlot{0%,100%{transform:scale(1);opacity:.76}50%{transform:scale(1.04);opacity:1}}
     .slotRect{fill:#ff7aa8;stroke:white;stroke-width:3}.slot.active .slotRect{filter:drop-shadow(0 4px 6px rgba(255,77,141,.55))}.slot.chosen .slotRect{fill:#22c55e}.slotText{fill:white;font-weight:900;font-size:18px;text-anchor:middle;pointer-events:none}.vline{stroke:var(--line);stroke-width:5;stroke-linecap:round}.hline.random{stroke:var(--random);stroke-width:6;stroke-linecap:round}.hline.player{stroke:var(--player);stroke-width:11;stroke-linecap:round}.nameText,.resultText{font-weight:900;fill:#283044;font-size:16px;text-anchor:middle}.resultText{fill:#be185d}.pathLine{stroke:#22c55e;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;opacity:.92}
     .list{display:grid;gap:8px}.listItem{padding:10px 12px;border-radius:14px;background:#f8fafc;border:2px solid #e2e8f0;font-weight:800}.listItem.current{background:#ffe4ef;border-color:#ff9ec4;color:#be185d}
-    .resultGrid{display:grid;gap:10px;margin-top:14px}.resultCard{padding:12px;border-radius:16px;background:#fdf2f8;border:2px solid #f9a8d4;font-weight:900}.hidden{display:none!important}
+    .resultGrid{display:grid;gap:10px;margin-top:14px}.resultCard{padding:12px;border-radius:16px;background:#fdf2f8;border:2px solid #f9a8d4;font-weight:900}.resultCard.big{background:#fff7ed;border-color:#fb923c}.resultCard.hit{background:#ecfeff;border-color:#22d3ee}.resultIcon{font-size:24px;margin-right:6px}.hidden{display:none!important}
     .footerBtns{justify-content:center;margin:18px 0 0}
     @media print{body{background:white}.noPrint,.steps,.side{display:none!important}.wrap{max-width:none;padding:0}.card{box-shadow:none;border:0}.boardWrap{border:0;overflow:visible}svg{min-width:0}.resultGrid{break-inside:avoid}}
   </style>
@@ -65,7 +75,36 @@
 <div class="wrap">
   <header>
     <h1>みんなであみだくじ</h1>
-    <p class="lead">スマホで参加して、みんなで線を足せるFirestore版 v4</p>
+    <div class="heroArt" aria-hidden="true">
+      <svg viewBox="0 0 420 170" role="img">
+        <defs>
+          <linearGradient id="skyPop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7b8"/><stop offset=".55" stop-color="#dff7ff"/><stop offset="1" stop-color="#ffe1f0"/></linearGradient>
+          <linearGradient id="rainbowLine" x1="0" x2="1"><stop offset="0" stop-color="#ff7aa8"/><stop offset=".5" stop-color="#5ac8fa"/><stop offset="1" stop-color="#82e0aa"/></linearGradient>
+        </defs>
+        <rect x="18" y="18" width="384" height="128" rx="36" fill="url(#skyPop)" stroke="#fff" stroke-width="7"/>
+        <circle cx="72" cy="52" r="12" fill="#fff" opacity=".95"/><circle cx="88" cy="48" r="16" fill="#fff" opacity=".95"/><circle cx="106" cy="54" r="11" fill="#fff" opacity=".95"/>
+        <circle cx="316" cy="50" r="11" fill="#fff" opacity=".95"/><circle cx="333" cy="46" r="15" fill="#fff" opacity=".95"/><circle cx="350" cy="52" r="10" fill="#fff" opacity=".95"/>
+        <path d="M138 42 C168 72 154 104 188 128 S258 42 292 74" fill="none" stroke="url(#rainbowLine)" stroke-width="11" stroke-linecap="round"/>
+        <path d="M158 62 L204 62 M184 91 L236 91 M224 120 L276 120" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
+        <g transform="translate(50 82)">
+          <ellipse cx="36" cy="36" rx="34" ry="30" fill="#ffffff" stroke="#ff9ec4" stroke-width="6"/>
+          <path d="M12 18 L22 4 L31 20" fill="#fff" stroke="#ff9ec4" stroke-width="6" stroke-linejoin="round"/>
+          <path d="M42 20 L54 4 L60 23" fill="#fff" stroke="#ff9ec4" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="25" cy="34" r="4" fill="#283044"/><circle cx="48" cy="34" r="4" fill="#283044"/>
+          <path d="M32 45 Q36 50 41 45" fill="none" stroke="#283044" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="16" cy="43" r="6" fill="#ffd0e2"/><circle cx="56" cy="43" r="6" fill="#ffd0e2"/>
+        </g>
+        <g transform="translate(304 84)">
+          <ellipse cx="34" cy="36" rx="32" ry="29" fill="#ffffff" stroke="#5ac8fa" stroke-width="6"/>
+          <path d="M20 14 C12 -10 32 -8 29 16" fill="#fff" stroke="#5ac8fa" stroke-width="6" stroke-linecap="round"/>
+          <path d="M44 14 C48 -10 68 -4 52 18" fill="#fff" stroke="#5ac8fa" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="24" cy="36" r="4" fill="#283044"/><circle cx="45" cy="36" r="4" fill="#283044"/>
+          <path d="M30 48 Q35 52 40 48" fill="none" stroke="#283044" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="15" cy="45" r="6" fill="#dff7ff"/><circle cx="54" cy="45" r="6" fill="#dff7ff"/>
+        </g>
+        <circle cx="150" cy="30" r="8" fill="#ffb020"/><circle cx="284" cy="38" r="7" fill="#ff7aa8"/><circle cx="210" cy="28" r="6" fill="#82e0aa"/>
+      </svg>
+    </div>
   </header>
 
   <section class="steps noPrint" aria-label="使い方の流れ">
@@ -81,6 +120,7 @@
   </section>
 
   <main id="app"></main>
+  <p class="versionNote">ver7（2026/6/30）</p>
 </div>
 
 <script type="module">
@@ -110,6 +150,14 @@ let state = {room:null, participants:[], lines:[], results:[], unsub:[]};
 
 function esc(s){return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function randId(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+async function uniqueRoomId(){
+  for(let i=0;i<8;i++){
+    const id = randId();
+    const snap = await getDoc(doc(db,'rooms',id));
+    if(!snap.exists()) return id;
+  }
+  return randId() + Date.now().toString(36).slice(-2).toUpperCase();
+}
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function nowPlusHours(h){return Timestamp.fromDate(new Date(Date.now()+h*60*60*1000));}
 function localUrl(roomId,host=false){const base = location.href.split('?')[0];return `${base}?room=${encodeURIComponent(roomId)}${host?'&host=1':''}`;}
@@ -141,7 +189,7 @@ function renderCreateRoom(){
         <label>部屋名</label>
         <input id="title" value="みんなであみだくじ">
         <div class="row">
-          <div><label>人数</label><select id="lineCount">${[3,4,5,6,7,8,9,10].map(n=>`<option ${n===6?'selected':''}>${n}</option>`).join('')}</select></div>
+          <div><label>人数</label><select id="lineCount">${[3,4,5,6,7,8,9,10].map(n=>`<option ${n===3?'selected':''}>${n}</option>`).join('')}</select></div>
           <div><label>1人が引く線</label><select id="linesPerPlayer"><option value="1">1本</option><option value="2">2本</option></select></div>
         </div>
         <div class="row">
@@ -155,8 +203,8 @@ function renderCreateRoom(){
       </section>
       <section class="card">
         <h2>この画面でできること</h2>
-        ${showMsg('部屋を作ると、参加者用QRコードが表示されます。最初のランダム線は、人数・段数・1人が引く線数に合わせて自動で決まります。','notice ok')}
-        <p>ローカル版v5ポップの操作をもとに、複数人参加用にした版です。</p>
+        ${showMsg('部屋を作るたびに、別々の部屋IDが自動で作られます。同時に複数の人が別の部屋を作っても、参加者や結果は混ざりません。','notice ok')}
+        <p class="small">参加者には、次の画面で表示されるQRコードまたは参加者用URLだけを共有します。</p>
       </section>
     </div>`;
   const resultsEl = document.getElementById('resultsText');
@@ -170,12 +218,12 @@ function renderCreateRoom(){
 function updateFormDefaults(){
   updateRandomPreview();
   const resultsEl = document.getElementById('resultsText');
-  const lineCount = Number(document.getElementById('lineCount')?.value || 6);
+  const lineCount = Number(document.getElementById('lineCount')?.value || 3);
   if(resultsEl && resultsEl.dataset.autoDefault === '1') resultsEl.value = defaultResultLabels(lineCount).join('\n');
 }
 
 function updateRandomPreview(){
-  const lineCount = Number(document.getElementById('lineCount')?.value || 6);
+  const lineCount = Number(document.getElementById('lineCount')?.value || 3);
   const rowCount = Number(document.getElementById('rowCount')?.value || 16);
   const linesPerPlayer = Number(document.getElementById('linesPerPlayer')?.value || 1);
   const count = autoRandomLineCount(lineCount, rowCount, linesPerPlayer);
@@ -200,7 +248,7 @@ async function createRoom(){
     btn.disabled = true;
     btn.textContent = '部屋を作成中...';
 
-    const roomId = randId();
+    const roomId = await uniqueRoomId();
     const lineCount = Number(document.getElementById('lineCount').value);
     const rowCount = Number(document.getElementById('rowCount').value);
     const linesPerPlayer = Number(document.getElementById('linesPerPlayer').value);
@@ -268,9 +316,17 @@ function renderHost(room){
         <h2>主催者画面</h2>
         <p class="pill">部屋ID ${esc(room.id)}</p>
         <p class="pill">状態 ${esc(room.status)}</p>
-        <div class="qrBox"><img src="${qrUrl(joinUrl)}" alt="参加用QR"><p class="small">参加者用QRコード</p></div>
-        <label>参加者用URL</label><input readonly value="${esc(joinUrl)}" onclick="this.select()">
-        <label>主催者用URL</label><input readonly value="${esc(hostUrl)}" onclick="this.select()">
+        <div class="qrBox zoomable" id="qrZoomOpen" role="button" tabindex="0" aria-label="参加用QRコードを拡大表示"><img src="${qrUrl(joinUrl)}" alt="参加用QR"><p class="small">このQRコードを参加者に読み取ってもらいます</p><span class="qrZoomHint">クリックでQRコードを大きく表示</span></div>
+        <div class="shareBox">
+          <label>参加者用URL</label>
+          <div class="copyRow"><input id="joinUrlInput" readonly value="${esc(joinUrl)}" onclick="this.select()"><button class="secondary" type="button" id="copyJoinUrlBtn">コピー</button></div>
+          <p class="small">参加者には、このURLまたはQRコードだけを共有してください。</p>
+        </div>
+        <details class="hostDetails">
+          <summary>主催者用URLを表示する</summary>
+          <label>主催者用URL</label><input readonly value="${esc(hostUrl)}" onclick="this.select()">
+          <p class="small">主催者画面を別端末で開き直す時だけ使います。参加者には共有しません。</p>
+        </details>
         <h3>参加者</h3>
         <div class="list">${participantsHtml()}</div>
         <div class="btns">
@@ -278,7 +334,7 @@ function renderHost(room){
           <button class="secondary" id="orderBtn" ${state.participants.length<2 || room.status==='waiting'?'disabled':''}>③ 順番を決める</button>
           <button class="warn" id="undoBtn" ${state.lines.filter(l=>l.type==='player').length===0?'disabled':''}>直前の線を戻す</button>
           <button id="publishBtn" ${room.resultsPublished?'disabled':''}>⑤ 結果発表</button>
-          <button class="secondary" onclick="window.print()">⑥ 印刷</button>
+          <button class="secondary" type="button" onclick="safePrint()">⑥ 印刷</button>
           <button class="danger" id="deleteBtn">部屋データを削除</button>
         </div>
       </section>
@@ -437,15 +493,52 @@ function nextTurnIndex(room, ps){
   }
   return -1;
 }
+
+function safePrint(){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const room = state.room;
+  const title = room?.title || 'みんなであみだくじ';
+  const board = document.querySelector('.boardWrap')?.outerHTML || '';
+  const results = document.querySelector('.resultGrid')?.outerHTML || '';
+  const status = document.querySelector('.notice')?.outerHTML || '';
+  const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} 印刷</title><style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#283044;margin:18px;background:white}
+    h1{text-align:center;margin:0 0 12px;font-size:26px}.notice{padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;margin-bottom:12px}.boardWrap{background:white;border:1px solid #cbd5e1;border-radius:12px;padding:8px;overflow:visible}svg{width:100%;height:auto;max-height:72vh}.resultGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:12px}.resultCard{border:2px solid #ffd0e2;border-radius:12px;padding:10px;text-align:center;font-weight:800}.noPrint{margin-top:14px;text-align:center}button{border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:900;color:white;background:#5ac8fa;cursor:pointer}@media print{.noPrint{display:none!important}body{margin:0}.boardWrap{border:0}svg{max-height:none}}
+  </style></head><body><h1>${esc(title)}</h1>${status}${board}${results}<div class="noPrint"><button onclick="window.print()">印刷する</button><p>印刷後、この画面は閉じてください。</p></div></body></html>`;
+  const w = window.open('', '_blank');
+  if(w && w.document){
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 450);
+    return;
+  }
+  if(isIOS){
+    alert('印刷画面を開けない場合は、Safari下部または上部の共有ボタンから「プリント」を選んでください。');
+  }
+  window.print();
+}
+
+function resultClass(label){
+  if(String(label).includes('大当たり')) return 'big';
+  if(String(label).includes('当たり')) return 'hit';
+  return '';
+}
+function resultIcon(label){
+  if(String(label).includes('大当たり')) return '🎉';
+  if(String(label).includes('当たり')) return '⭐';
+  return '😊';
+}
 function resultsHtml(room, me=null){
   if(!room.resultsPublished) return `<div class="resultGrid"><div class="resultCard">結果はまだ隠れています。</div></div>`;
   const rows = state.participants.map(p=>{
     const goal = traceGoal(room,p.selectedLine);
     const res = state.results.find(r=>r.index===goal);
+    const label = res?.label || `結果${goal+1}`;
     const mine = me && p.uid===me.uid;
-    return `<div class="resultCard" style="${mine?'border-width:4px':''}">${esc(p.name)} → ${esc(res?.label || `結果${goal+1}`)}</div>`;
+    return `<div class="resultCard ${resultClass(label)}" style="${mine?'border-width:4px':''}"><span class="resultIcon">${resultIcon(label)}</span>${esc(p.name)} → ${esc(label)}</div>`;
   }).join('');
-  return `<h2>⑤ 結果発表</h2><div class="resultGrid">${rows}</div><div class="btns footerBtns noPrint"><button class="secondary" onclick="window.print()">⑥ 印刷</button></div>`;
+  return `<h2>⑤ 結果発表</h2><div class="resultGrid">${rows}</div><div class="btns footerBtns noPrint"><button class="secondary" type="button" onclick="safePrint()">⑥ 印刷</button></div>`;
 }
 function traceGoal(room,startLine){
   let pos = Number(startLine);
@@ -473,7 +566,42 @@ function tracedPaths(room){
   return paths;
 }
 
+function openQrModal(url){
+  const old = document.getElementById('qrModalBackdrop');
+  if(old) old.remove();
+  const div = document.createElement('div');
+  div.className = 'modalBackdrop show';
+  div.id = 'qrModalBackdrop';
+  div.innerHTML = `<div class="qrModal" role="dialog" aria-modal="true" aria-label="参加用QRコード拡大表示">
+    <h2>参加用QRコード</h2>
+    <p class="small">Zoomで画面共有している時は、この大きなQRコードを読み取ってもらってください。</p>
+    <img src="${qrUrl(url)}" alt="参加用QRコード拡大版">
+    <div><button class="secondary modalClose" type="button" id="qrModalClose">閉じる</button></div>
+  </div>`;
+  document.body.appendChild(div);
+  const close = () => div.remove();
+  document.getElementById('qrModalClose').addEventListener('click', close);
+  div.addEventListener('click', e => { if(e.target === div) close(); });
+  document.addEventListener('keydown', function escClose(e){ if(e.key === 'Escape'){ close(); document.removeEventListener('keydown', escClose); } });
+}
+
 async function bindHostButtons(room){
+  const joinUrlForModal = localUrl(room.id,false);
+  const qrOpen = document.getElementById('qrZoomOpen');
+  qrOpen?.addEventListener('click', ()=>openQrModal(joinUrlForModal));
+  qrOpen?.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openQrModal(joinUrlForModal); } });
+  document.getElementById('copyJoinUrlBtn')?.addEventListener('click', async()=>{
+    const input = document.getElementById('joinUrlInput');
+    try{
+      await navigator.clipboard.writeText(input.value);
+      const btn = document.getElementById('copyJoinUrlBtn');
+      btn.textContent = 'コピー済み';
+      setTimeout(()=>btn.textContent='コピー',1200);
+    }catch(e){
+      input.select();
+      alert('URLを選択しました。コピーしてください。');
+    }
+  });
   document.getElementById('makeBoardBtn')?.addEventListener('click', async()=>{
     try{
       const generated = generateRandomLines(room.lineCount, room.rowCount, room.randomLineCount);
