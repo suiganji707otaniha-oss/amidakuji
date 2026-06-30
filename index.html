@@ -1,476 +1,1113 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>みんなであみだくじ Firestore版 v1</title>
-  <style>
-    :root{
-      --bg1:#fff7b8; --bg2:#dff7ff; --bg3:#ffe1f0; --card:#ffffff;
-      --ink:#283044; --muted:#6b7280; --main:#ff7aa8; --main2:#5ac8fa; --accent:#82e0aa;
-      --warn:#ffb020; --danger:#ef4444; --line:#354052; --random:#9ca3af; --player:#ff4d8d;
-      --shadow:0 14px 32px rgba(40,48,68,.16); --radius:22px;
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>みんなであみだくじ Firestore版 v1</title>
+    <style>
+    :root {
+        --bg1: #fff7b8;
+        --bg2: #dff7ff;
+        --bg3: #ffe1f0;
+        --card: #ffffff;
+        --ink: #283044;
+        --muted: #6b7280;
+        --main: #ff7aa8;
+        --main2: #5ac8fa;
+        --accent: #82e0aa;
+        --warn: #ffb020;
+        --danger: #ef4444;
+        --line: #354052;
+        --random: #9ca3af;
+        --player: #ff4d8d;
+        --shadow: 0 14px 32px rgba(40, 48, 68, .16);
+        --radius: 22px;
     }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2) 48%,var(--bg3));min-height:100vh}
-    .wrap{max-width:1040px;margin:0 auto;padding:22px 14px 40px}
-    header{padding:18px 4px 10px;text-align:center}
-    h1{font-size:clamp(28px,6vw,48px);margin:0 0 6px;letter-spacing:.04em}
-    .lead{margin:0;color:#475569;font-weight:700}
-    .steps{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0}
-    .step{background:rgba(255,255,255,.72);border:2px solid rgba(255,255,255,.9);border-radius:18px;padding:12px 14px;box-shadow:0 8px 20px rgba(40,48,68,.08)}
-    .step strong{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--main);color:white;margin-right:8px}
-    .grid{display:grid;grid-template-columns:1fr;gap:16px}
-    @media(min-width:880px){.grid.two{grid-template-columns:360px 1fr}}
-    .card{background:rgba(255,255,255,.92);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:2px solid rgba(255,255,255,.8)}
-    h2{font-size:22px;margin:0 0 12px}
-    h3{font-size:18px;margin:18px 0 10px}
-    label{display:block;font-weight:800;margin:10px 0 6px}
-    input,select,textarea{width:100%;font:inherit;font-size:17px;padding:12px 13px;border-radius:14px;border:2px solid #dbe3ef;background:white;color:var(--ink)}
-    textarea{min-height:132px;resize:vertical;line-height:1.55}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-    button,.buttonLink{border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:900;color:white;background:var(--main);box-shadow:0 8px 18px rgba(255,122,168,.28);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-    button.secondary,.buttonLink.secondary{background:var(--main2);box-shadow:0 8px 18px rgba(90,200,250,.25)}
-    button.green{background:#22c55e;box-shadow:0 8px 18px rgba(34,197,94,.2)}
-    button.warn{background:var(--warn);box-shadow:0 8px 18px rgba(255,176,32,.22)}
-    button.danger{background:var(--danger);box-shadow:0 8px 18px rgba(239,68,68,.22)}
-    button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;background:#f1f5f9;font-weight:800;color:#475569;margin:3px}
-    .pill.now{background:#ffe4ef;color:#be185d;border:2px solid #ff9ec4}
-    .notice{padding:12px 14px;border-radius:16px;background:#fff8db;border:2px solid #ffe08a;color:#5f4500;font-weight:700;margin:10px 0}
-    .ok{background:#dcfce7;border-color:#86efac;color:#166534}
-    .bad{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
-    .small{font-size:14px;color:#64748b;line-height:1.6}
-    .qrBox{display:grid;place-items:center;background:white;border-radius:20px;border:2px dashed #cbd5e1;padding:14px;margin-top:10px}
-    .qrBox img{width:190px;height:190px;image-rendering:pixelated}
-    .boardWrap{overflow:auto;background:white;border-radius:24px;padding:14px;border:3px solid rgba(90,200,250,.35)}
-    svg{display:block;min-width:600px;width:100%;height:auto;touch-action:manipulation}
-    .slot{cursor:pointer;opacity:.12;transition:.15s}.slot:hover{opacity:.36}.slot.active{opacity:.28}.slot.disabled{cursor:not-allowed;opacity:.02}
-    .slotRect{fill:#ff7aa8}.vline{stroke:var(--line);stroke-width:5;stroke-linecap:round}.hline.random{stroke:var(--random);stroke-width:6;stroke-linecap:round}.hline.player{stroke:var(--player);stroke-width:8;stroke-linecap:round}.nameText,.resultText{font-weight:900;fill:#283044;font-size:16px;text-anchor:middle}.resultText{fill:#be185d}.pathLine{stroke:#22c55e;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;opacity:.92}
-    .list{display:grid;gap:8px}.listItem{padding:10px 12px;border-radius:14px;background:#f8fafc;border:2px solid #e2e8f0;font-weight:800}.listItem.current{background:#ffe4ef;border-color:#ff9ec4;color:#be185d}
-    .resultGrid{display:grid;gap:10px;margin-top:14px}.resultCard{padding:12px;border-radius:16px;background:#fdf2f8;border:2px solid #f9a8d4;font-weight:900}.hidden{display:none!important}
-    .footerBtns{justify-content:center;margin:18px 0 0}
-    @media print{body{background:white}.noPrint,.steps,.side{display:none!important}.wrap{max-width:none;padding:0}.card{box-shadow:none;border:0}.boardWrap{border:0;overflow:visible}svg{min-width:0}.resultGrid{break-inside:avoid}}
-  </style>
+
+    * {
+        box-sizing: border-box
+    }
+
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: linear-gradient(135deg, var(--bg1), var(--bg2) 48%, var(--bg3));
+        min-height: 100vh
+    }
+
+    .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 22px 14px 40px
+    }
+
+    header {
+        padding: 18px 4px 10px;
+        text-align: center
+    }
+
+    h1 {
+        font-size: clamp(28px, 6vw, 48px);
+        margin: 0 0 6px;
+        letter-spacing: .04em
+    }
+
+    .lead {
+        margin: 0;
+        color: #475569;
+        font-weight: 700
+    }
+
+    .steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin: 18px 0
+    }
+
+    .step {
+        background: rgba(255, 255, 255, .72);
+        border: 2px solid rgba(255, 255, 255, .9);
+        border-radius: 18px;
+        padding: 12px 14px;
+        box-shadow: 0 8px 20px rgba(40, 48, 68, .08)
+    }
+
+    .step strong {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--main);
+        color: white;
+        margin-right: 8px
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px
+    }
+
+    @media (min-width: 880px) {
+        .grid.two {
+            grid-template-columns: 360px 1fr
+        }
+    }
+
+    .card {
+        background: rgba(255, 255, 255, .92);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow);
+        border: 2px solid rgba(255, 255, 255, .8)
+    }
+
+    h2 {
+        font-size: 22px;
+        margin: 0 0 12px
+    }
+
+    h3 {
+        font-size: 18px;
+        margin: 18px 0 10px
+    }
+
+    label {
+        display: block;
+        font-weight: 800;
+        margin: 10px 0 6px
+    }
+
+    input, select, textarea {
+        width: 100%;
+        font: inherit;
+        font-size: 17px;
+        padding: 12px 13px;
+        border-radius: 14px;
+        border: 2px solid #dbe3ef;
+        background: white;
+        color: var(--ink)
+    }
+
+    textarea {
+        min-height: 132px;
+        resize: vertical;
+        line-height: 1.55
+    }
+
+    .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px
+    }
+
+    .btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px
+    }
+
+    button, .buttonLink {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 900;
+        color: white;
+        background: var(--main);
+        box-shadow: 0 8px 18px rgba(255, 122, 168, .28);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px
+    }
+
+    button.secondary, .buttonLink.secondary {
+        background: var(--main2);
+        box-shadow: 0 8px 18px rgba(90, 200, 250, .25)
+    }
+
+    button.green {
+        background: #22c55e;
+        box-shadow: 0 8px 18px rgba(34, 197, 94, .2)
+    }
+
+    button.warn {
+        background: var(--warn);
+        box-shadow: 0 8px 18px rgba(255, 176, 32, .22)
+    }
+
+    button.danger {
+        background: var(--danger);
+        box-shadow: 0 8px 18px rgba(239, 68, 68, .22)
+    }
+
+    button:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+        box-shadow: none
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        font-weight: 800;
+        color: #475569;
+        margin: 3px
+    }
+
+    .pill.now {
+        background: #ffe4ef;
+        color: #be185d;
+        border: 2px solid #ff9ec4
+    }
+
+    .notice {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: #fff8db;
+        border: 2px solid #ffe08a;
+        color: #5f4500;
+        font-weight: 700;
+        margin: 10px 0
+    }
+
+    .ok {
+        background: #dcfce7;
+        border-color: #86efac;
+        color: #166534
+    }
+
+    .bad {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #991b1b
+    }
+
+    .small {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.6
+    }
+
+    .qrBox {
+        display: grid;
+        place-items: center;
+        background: white;
+        border-radius: 20px;
+        border: 2px dashed #cbd5e1;
+        padding: 14px;
+        margin-top: 10px
+    }
+
+    .qrBox img {
+        width: 190px;
+        height: 190px;
+        image-rendering: pixelated
+    }
+
+    .boardWrap {
+        overflow: auto;
+        background: white;
+        border-radius: 24px;
+        padding: 14px;
+        border: 3px solid rgba(90, 200, 250, .35)
+    }
+
+    svg {
+        display: block;
+        min-width: 600px;
+        width: 100%;
+        height: auto;
+        touch-action: manipulation
+    }
+
+    .slot {
+        cursor: pointer;
+        opacity: .12;
+        transition:.15s
+    }
+
+    .slot:hover {
+        opacity:.36
+    }
+
+    .slot.active {
+        opacity:.28
+    }
+
+    .slot.disabled {
+        cursor: not-allowed;
+        opacity: .02
+    }
+
+    .slotRect {
+        fill:#ff7aa8
+    }
+
+    .vline {
+        stroke: var(--line);
+        stroke-width: 5;
+        stroke-linecap:round
+    }
+
+    .hline.random {
+        stroke: var(--random);
+        stroke-width: 6;
+        stroke-linecap:round
+    }
+
+    .hline.player {
+        stroke: var(--player);
+        stroke-width: 8;
+        stroke-linecap:round
+    }
+
+    .nameText, .resultText {
+        font-weight: 900;
+        fill: #283044;
+        font-size: 16px;
+        text-anchor:middle
+    }
+
+    .resultText {
+        fill:#be185d
+    }
+
+    .pathLine {
+        stroke: #22c55e;
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+        opacity: .92
+    }
+
+    .list {
+        display: grid;
+        gap:8px
+    }
+
+    .listItem {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        font-weight:800
+    }
+
+    .listItem.current {
+        background: #ffe4ef;
+        border-color: #ff9ec4;
+        color: #be185d
+    }
+
+    .resultGrid {
+        display: grid;
+        gap: 10px;
+        margin-top:14px
+    }
+
+    .resultCard {
+        padding: 12px;
+        border-radius: 16px;
+        background: #fdf2f8;
+        border: 2px solid #f9a8d4;
+        font-weight:900
+    }
+
+    .hidden {
+        display: none !important
+    }
+
+    .footerBtns {
+        justify-content: center;
+        margin: 18px 0 0
+    }
+
+    @media print {
+        body {
+            background:white
+        }
+
+        .noPrint, .steps, .side {
+            display:none !important
+        }
+
+        .wrap {
+            max-width: none;
+            padding:0
+        }
+
+        .card {
+            box-shadow: none;
+            border:0
+        }
+
+        .boardWrap {
+            border: 0;
+            overflow:visible
+        }
+
+        svg {
+            min-width:0
+        }
+
+        .resultGrid {
+            break-inside: avoid
+        }
+    }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>みんなであみだくじ</h1>
-    <p class="lead">スマホで参加して、みんなで線を足せるFirestore版 v1</p>
-  </header>
+    <div class="wrap">
+        <header>
+            <h1>みんなであみだくじ</h1>
+            <p class="lead">スマホで参加して、みんなで線を足せるFirestore版 v1</p>
+        </header>
 
-  <section class="steps noPrint">
-    <div class="step"><strong>①</strong>必要な情報を入力</div>
-    <div class="step"><strong>②</strong>あみだくじの作成</div>
-    <div class="step"><strong>③</strong>順番を決める</div>
-    <div class="step"><strong>④</strong>線を引く</div>
-    <div class="step"><strong>⑤</strong>結果発表</div>
-    <div class="step"><strong>⑥</strong>印刷</div>
-  </section>
+        <section class="steps noPrint">
+            <div class="step">
+                <strong>①</strong>
+                必要な情報を入力
+            </div>
+            <div class="step">
+                <strong>②</strong>
+                あみだくじの作成
+            </div>
+            <div class="step">
+                <strong>③</strong>
+                順番を決める
+            </div>
+            <div class="step">
+                <strong>④</strong>
+                線を引く
+            </div>
+            <div class="step">
+                <strong>⑤</strong>
+                結果発表
+            </div>
+            <div class="step">
+                <strong>⑥</strong>
+                印刷
+            </div>
+        </section>
 
-  <main id="app"></main>
-</div>
+        <main id="app"></main>
+    </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, Timestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, Timestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB8lg3L43uYYZivVgYeojPWUpXT6-ZnB1I",
-  authDomain: "amidakuji-app.firebaseapp.com",
-  projectId: "amidakuji-app",
-  storageBucket: "amidakuji-app.firebasestorage.app",
-  messagingSenderId: "21288891181",
-  appId: "1:21288891181:web:0a9f3446b7bb1f1bf299a4",
-  measurementId: "G-Z6QMD1Z6Z3"
-};
+    const firebaseConfig = {
+        apiKey: "AIzaSyB8lg3L43uYYZivVgYeojPWUpXT6-ZnB1I",
+        authDomain: "amidakuji-app.firebaseapp.com",
+        projectId: "amidakuji-app",
+        storageBucket: "amidakuji-app.firebasestorage.app",
+        messagingSenderId: "21288891181",
+        appId: "1:21288891181:web:0a9f3446b7bb1f1bf299a4",
+        measurementId: "G-Z6QMD1Z6Z3"
+    };
 
-const fbApp = initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
-const appEl = document.getElementById('app');
-const params = new URLSearchParams(location.search);
-const roomIdFromUrl = params.get('room');
-const isHostUrl = params.get('host') === '1';
-let uid = null;
-let state = {room:null, participants:[], lines:[], results:[], unsub:[]};
+    const fbApp = initializeApp(firebaseConfig);
+    const auth = getAuth(fbApp);
+    const db = getFirestore(fbApp);
+    const appEl = document.getElementById('app');
+    const params = new URLSearchParams(location.search);
+    const roomIdFromUrl = params.get('room');
+    const isHostUrl = params.get('host') === '1';
+    let uid = null;
+    let state = {
+        room: null,
+        participants: [],
+        lines: [],
+        results: [],
+        unsub: []
+    };
 
-function esc(s){return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function randId(){return Math.random().toString(36).slice(2,8).toUpperCase();}
-function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function nowPlusHours(h){return Timestamp.fromDate(new Date(Date.now()+h*60*60*1000));}
-function localUrl(roomId,host=false){const base = location.href.split('?')[0];return `${base}?room=${encodeURIComponent(roomId)}${host?'&host=1':''}`;}
-function qrUrl(url){return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;}
-function cleanUnsubs(){state.unsub.forEach(fn=>{try{fn()}catch(e){}});state.unsub=[];}
-function showMsg(html, cls='notice'){return `<div class="${cls}">${html}</div>`;}
-function roomRef(){return doc(db,'rooms',roomIdFromUrl);}
-function participantsRef(){return collection(db,'rooms',roomIdFromUrl,'participants');}
-function linesRef(){return collection(db,'rooms',roomIdFromUrl,'horizontalLines');}
-function resultsRef(){return collection(db,'rooms',roomIdFromUrl,'results');}
-function isExpired(room){return room?.expiresAt?.toDate && room.expiresAt.toDate().getTime() < Date.now();}
-
-onAuthStateChanged(auth, async user => {
-  if(!user){ await signInAnonymously(auth); return; }
-  uid = user.uid;
-  if(roomIdFromUrl){ attachRoom(); } else { renderCreateRoom(); }
-});
-
-function renderCreateRoom(){
-  cleanUnsubs();
-  appEl.innerHTML = `
-    <div class="grid two">
-      <section class="card side">
-        <h2>① 必要な情報を入力</h2>
-        <label>部屋名</label>
-        <input id="title" value="みんなであみだくじ">
-        <div class="row">
-          <div><label>人数</label><select id="lineCount">${[3,4,5,6,7,8,9,10].map(n=>`<option ${n===6?'selected':''}>${n}</option>`).join('')}</select></div>
-          <div><label>1人が引く線</label><select id="linesPerPlayer"><option value="1">1本</option><option value="2">2本</option></select></div>
-        </div>
-        <div class="row">
-          <div><label>段数</label><select id="rowCount">${[10,12,14,16,18,20,22,24].map(n=>`<option ${n===16?'selected':''}>${n}</option>`).join('')}</select></div>
-          <div><label>最初のランダム線</label><select id="randomLineCount">${[4,6,8,10,12,14,16,18,20,24,28,32,36,40].map(n=>`<option ${n===12?'selected':''}>${n}</option>`).join('')}</select></div>
-        </div>
-        <label>結果</label>
-        <textarea id="resultsText">大当たり
-当たり
-お楽しみ
-もう一回
-参加賞
-ありがとう</textarea>
-        <p class="small">結果は人数分だけ使います。足りない場合は「結果1」のように補います。</p>
-        <div class="btns"><button id="createRoomBtn">② 部屋を作る</button></div>
-      </section>
-      <section class="card">
-        <h2>この画面でできること</h2>
-        ${showMsg('部屋を作ると、参加者用QRコードが表示されます。参加者はスマホで読み取って名前と縦線を選びます。','notice ok')}
-        <p>ローカル版v5ポップの操作をもとに、複数人参加用にした版です。</p>
-      </section>
-    </div>`;
-  document.getElementById('createRoomBtn').onclick = createRoom;
-}
-
-async function createRoom(){
-  const roomId = randId();
-  const lineCount = Number(document.getElementById('lineCount').value);
-  const rowCount = Number(document.getElementById('rowCount').value);
-  const linesPerPlayer = Number(document.getElementById('linesPerPlayer').value);
-  const randomLineCount = Number(document.getElementById('randomLineCount').value);
-  let labels = document.getElementById('resultsText').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  while(labels.length < lineCount) labels.push(`結果${labels.length+1}`);
-  labels = labels.slice(0,lineCount);
-  const batch = writeBatch(db);
-  const r = doc(db,'rooms',roomId);
-  batch.set(r, {
-    title: document.getElementById('title').value.trim() || 'みんなであみだくじ',
-    status: 'waiting', hostUid: uid, lineCount, maxPlayers: lineCount, rowCount,
-    linesPerPlayer, randomLineCount, currentTurnIndex: 0, currentRound: 0,
-    turnOrder: [], resultsHidden: true, resultsPublished: false, allLinesDone:false,
-    createdAt: serverTimestamp(), expiresAt: nowPlusHours(24), lastActionAt: serverTimestamp()
-  });
-  labels.forEach((label,index)=> batch.set(doc(db,'rooms',roomId,'results',String(index)),{index,label,revealed:false}));
-  await batch.commit();
-  location.href = localUrl(roomId,true);
-}
-
-function attachRoom(){
-  cleanUnsubs();
-  appEl.innerHTML = `<section class="card">${showMsg('読み込み中です。','notice')}</section>`;
-  state.unsub.push(onSnapshot(roomRef(), snap => {
-    if(!snap.exists()) { appEl.innerHTML = `<section class="card">${showMsg('この部屋は見つかりません。','notice bad')}<a class="buttonLink secondary" href="${location.href.split('?')[0]}">新しく作る</a></section>`; return; }
-    state.room = {id:snap.id,...snap.data()};
-    renderRoom();
-  }));
-  state.unsub.push(onSnapshot(query(participantsRef(), orderBy('joinedAt','asc')), snap => { state.participants = snap.docs.map(d=>({id:d.id,...d.data()})); renderRoom(); }));
-  state.unsub.push(onSnapshot(query(linesRef(), orderBy('createdAt','asc')), snap => { state.lines = snap.docs.map(d=>({id:d.id,...d.data()})); renderRoom(); }));
-  state.unsub.push(onSnapshot(query(resultsRef(), orderBy('index','asc')), snap => { state.results = snap.docs.map(d=>({id:d.id,...d.data()})); renderRoom(); }));
-}
-
-function renderRoom(){
-  const room = state.room;
-  if(!room || !uid) return;
-  const amHost = room.hostUid === uid && isHostUrl;
-  if(isExpired(room)){
-    appEl.innerHTML = `<section class="card">${showMsg('この部屋は24時間の期限を過ぎています。必要なら新しく作り直してください。','notice bad')}<div class="btns"><a class="buttonLink secondary" href="${location.href.split('?')[0]}">新しく作る</a></div></section>`;
-    return;
-  }
-  if(amHost) renderHost(room); else renderParticipant(room);
-}
-
-function renderHost(room){
-  const joinUrl = localUrl(room.id,false);
-  const hostUrl = localUrl(room.id,true);
-  appEl.innerHTML = `
-    <div class="grid two">
-      <section class="card side noPrint">
-        <h2>主催者画面</h2>
-        <p class="pill">部屋ID ${esc(room.id)}</p>
-        <p class="pill">状態 ${esc(room.status)}</p>
-        <div class="qrBox"><img src="${qrUrl(joinUrl)}" alt="参加用QR"><p class="small">参加者用QRコード</p></div>
-        <label>参加者用URL</label><input readonly value="${esc(joinUrl)}" onclick="this.select()">
-        <label>主催者用URL</label><input readonly value="${esc(hostUrl)}" onclick="this.select()">
-        <h3>参加者</h3>
-        <div class="list">${participantsHtml()}</div>
-        <div class="btns">
-          <button class="green" id="makeBoardBtn" ${room.status!=='waiting'?'disabled':''}>② あみだくじの作成</button>
-          <button class="secondary" id="orderBtn" ${state.participants.length<2 || room.status==='waiting'?'disabled':''}>③ 順番を決める</button>
-          <button class="warn" id="undoBtn" ${state.lines.filter(l=>l.type==='player').length===0?'disabled':''}>直前の線を戻す</button>
-          <button id="publishBtn" ${room.resultsPublished?'disabled':''}>⑤ 結果発表</button>
-          <button class="secondary" onclick="window.print()">⑥ 印刷</button>
-          <button class="danger" id="deleteBtn">部屋データを削除</button>
-        </div>
-      </section>
-      <section class="card">
-        ${statusHtml(room)}
-        ${boardHtml(room, false)}
-        ${resultsHtml(room)}
-      </section>
-    </div>`;
-  bindHostButtons(room);
-}
-
-function renderParticipant(room){
-  const me = state.participants.find(p=>p.uid===uid);
-  if(!me){ renderJoin(room); return; }
-  appEl.innerHTML = `
-    <div class="grid two">
-      <section class="card side noPrint">
-        <h2>参加者画面</h2>
-        <p class="pill">あなた ${esc(me.name)}</p>
-        <p class="pill">選んだ縦線 ${Number(me.selectedLine)+1}</p>
-        <h3>参加者</h3>
-        <div class="list">${participantsHtml()}</div>
-        ${turnMessage(room, me)}
-      </section>
-      <section class="card">
-        ${statusHtml(room)}
-        ${boardHtml(room, true)}
-        ${resultsHtml(room, me)}
-      </section>
-    </div>`;
-  bindSlotClicks(room, me);
-}
-
-function renderJoin(room){
-  const used = new Set(state.participants.map(p=>p.selectedLine));
-  const full = state.participants.length >= room.maxPlayers;
-  appEl.innerHTML = `
-    <section class="card">
-      <h2>参加する</h2>
-      ${full?showMsg('参加人数が上限に達しています。','notice bad'):showMsg('名前を入れて、好きな縦線を選んでください。','notice ok')}
-      <label>お名前</label><input id="joinName" maxlength="20" ${full?'disabled':''}>
-      <label>選ぶ縦線</label><select id="joinLine" ${full?'disabled':''}>${Array.from({length:room.lineCount},(_,i)=>`<option value="${i}" ${used.has(i)?'disabled':''}>${i+1}番 ${used.has(i)?'使用中':''}</option>`).join('')}</select>
-      <div class="btns"><button id="joinBtn" ${full?'disabled':''}>参加する</button></div>
-    </section>`;
-  document.getElementById('joinBtn')?.addEventListener('click', async()=>{
-    const name = document.getElementById('joinName').value.trim();
-    const selectedLine = Number(document.getElementById('joinLine').value);
-    if(!name){alert('名前を入力してください。');return;}
-    await setDoc(doc(db,'rooms',room.id,'participants',uid),{uid,name,selectedLine,order:999,joinedAt:serverTimestamp(),isHost:false,lineDrawCount:0});
-  });
-}
-
-function statusHtml(room){
-  const current = currentParticipant(room);
-  const done = state.participants.reduce((sum,p)=>sum+Number(p.lineDrawCount||0),0);
-  const total = state.participants.length * Number(room.linesPerPlayer||1);
-  return `<div class="notice ${room.allLinesDone?'ok':''}">
-    <div>現在の状態：${esc(statusLabel(room.status))}</div>
-    <div>現在の番：${current?esc(current.name):'まだ決まっていません'}</div>
-    <div>線の進み具合：${done} / ${total}</div>
-  </div>`;
-}
-function statusLabel(s){return ({waiting:'参加者待ち',created:'あみだ作成済み',ordering:'順番決定済み',playing:'線を引いています',finished:'結果発表済み',expired:'期限切れ'}[s]||s);}
-function participantsHtml(){
-  const ordered = [...state.participants].sort((a,b)=>(a.order??999)-(b.order??999));
-  const current = currentParticipant(state.room);
-  return ordered.map(p=>`<div class="listItem ${current?.uid===p.uid?'current':''}">${esc(p.name)}　縦線${Number(p.selectedLine)+1}　${p.order<999?`順番${Number(p.order)+1}`:'未定'}　${p.lineDrawCount||0}本</div>`).join('') || '<div class="small">まだ参加者はいません。</div>';
-}
-function currentParticipant(room){
-  if(!room?.turnOrder?.length) return null;
-  const id = room.turnOrder[room.currentTurnIndex] ?? null;
-  return state.participants.find(p=>p.uid===id) || null;
-}
-function turnMessage(room, me){
-  if(room.resultsPublished) return showMsg('結果が発表されました。下で確認できます。','notice ok');
-  if(room.allLinesDone) return showMsg('全員が線を引き終わりました。結果発表を待っています。','notice ok');
-  const cur = currentParticipant(room);
-  if(room.status!=='playing') return showMsg('主催者が順番を決めるまで待ってください。','notice');
-  if(cur?.uid===me.uid) return showMsg('あなたの番です。あみだくじの中のピンク色の場所をタップして、横線を1本入れてください。','notice ok');
-  return showMsg(`今は ${esc(cur?.name || '次の人')} さんの番です。`, 'notice');
-}
-
-function boardHtml(room, interactive){
-  const w=760,h=560, top=70,bottom=470,left=70,right=690;
-  const n=room.lineCount,rowCount=room.rowCount;
-  const xs=Array.from({length:n},(_,i)=> left + (right-left)*(i/(n-1)));
-  const rowY=r => top + (bottom-top)*((r+1)/(rowCount+1));
-  let svg = `<div class="boardWrap"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="あみだくじ">`;
-  const byLine = new Map();
-  state.participants.forEach(p=>byLine.set(p.selectedLine,p.name));
-  xs.forEach((x,i)=>{
-    svg += `<text class="nameText" x="${x}" y="32">${esc(byLine.get(i)||`${i+1}`)}</text>`;
-    svg += `<line class="vline" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}"></line>`;
-  });
-  state.lines.forEach(l=>{
-    if(l.col>=0 && l.col<n-1) svg += `<line class="hline ${l.type==='player'?'player':'random'}" x1="${xs[l.col]}" y1="${rowY(l.row)}" x2="${xs[l.col+1]}" y2="${rowY(l.row)}"></line>`;
-  });
-  if(room.resultsPublished){
-    tracedPaths(room).forEach(path=>{svg += `<path class="pathLine" d="${path.d}"></path>`});
-  }
-  for(let r=0;r<rowCount;r++){
-    for(let c=0;c<n-1;c++){
-      const valid = isValidSlot(r,c,room);
-      svg += `<g class="slot ${valid?'active':'disabled'}" data-row="${r}" data-col="${c}"><rect class="slotRect" x="${xs[c]+7}" y="${rowY(r)-18}" width="${xs[c+1]-xs[c]-14}" height="36" rx="18"></rect></g>`;
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"]/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[c]));
     }
-  }
-  state.results.forEach(res=>{ const x=xs[res.index]; svg += `<text class="resultText" x="${x}" y="528">${room.resultsPublished?esc(res.label):'？'}</text>`; });
-  svg += `</svg></div>`;
-  return svg;
-}
-function isValidSlot(row,col,room){
-  if(row<0 || col<0 || col>=room.lineCount-1) return false;
-  return !state.lines.some(l => l.row===row && (l.col===col || l.col===col-1 || l.col===col+1));
-}
-function bindSlotClicks(room, me){
-  if(room.status!=='playing' || room.allLinesDone || room.resultsPublished) return;
-  const cur = currentParticipant(room);
-  if(cur?.uid!==me.uid) return;
-  document.querySelectorAll('.slot.active').forEach(el=>{
-    el.addEventListener('click', async()=>{
-      const row = Number(el.dataset.row), col=Number(el.dataset.col);
-      if(!isValidSlot(row,col,room)) return;
-      await addPlayerLine(room, me, row, col);
-    }, {once:true});
-  });
-}
-async function addPlayerLine(room, me, row, col){
-  try{
-    const batch = writeBatch(db);
-    batch.set(doc(linesRef()),{row,col,by:uid,type:'player',round:room.currentRound||0,createdAt:serverTimestamp()});
-    const pRef = doc(db,'rooms',room.id,'participants',uid);
-    batch.update(pRef,{lineDrawCount: increment(1)});
-    const simulated = state.participants.map(p=>p.uid===uid ? {...p,lineDrawCount:(p.lineDrawCount||0)+1} : p);
-    const next = nextTurnIndex(room, simulated);
-    const roomUpdates = {lastActionAt:serverTimestamp()};
-    if(next === -1){ roomUpdates.allLinesDone = true; }
-    else { roomUpdates.currentTurnIndex = next; roomUpdates.currentRound = Math.floor(totalDrawn(simulated) / Math.max(1, simulated.length)); }
-    batch.update(roomRef(), roomUpdates);
-    await batch.commit();
-  }catch(e){ alert('線の保存に失敗しました。ルール設定を確認してください。\n' + e.message); }
-}
-function totalDrawn(ps){return ps.reduce((s,p)=>s+Number(p.lineDrawCount||0),0);}
-function nextTurnIndex(room, ps){
-  const order = room.turnOrder || [];
-  if(!order.length) return -1;
-  const max = Number(room.linesPerPlayer||1);
-  let start = (Number(room.currentTurnIndex||0)+1) % order.length;
-  for(let step=0; step<order.length; step++){
-    const idx = (start + step) % order.length;
-    const p = ps.find(x=>x.uid===order[idx]);
-    if(p && Number(p.lineDrawCount||0) < max) return idx;
-  }
-  return -1;
-}
-function resultsHtml(room, me=null){
-  if(!room.resultsPublished) return `<div class="resultGrid"><div class="resultCard">結果はまだ隠れています。</div></div>`;
-  const rows = state.participants.map(p=>{
-    const goal = traceGoal(room,p.selectedLine);
-    const res = state.results.find(r=>r.index===goal);
-    const mine = me && p.uid===me.uid;
-    return `<div class="resultCard" style="${mine?'border-width:4px':''}">${esc(p.name)} → ${esc(res?.label || `結果${goal+1}`)}</div>`;
-  }).join('');
-  return `<h2>⑤ 結果発表</h2><div class="resultGrid">${rows}</div><div class="btns footerBtns noPrint"><button class="secondary" onclick="window.print()">⑥ 印刷</button></div>`;
-}
-function traceGoal(room,startLine){
-  let pos = Number(startLine);
-  const sorted = [...state.lines].sort((a,b)=>a.row-b.row || a.col-b.col);
-  sorted.forEach(l=>{ if(l.col===pos) pos++; else if(l.col+1===pos) pos--; });
-  return pos;
-}
-function tracedPaths(room){
-  const paths=[];
-  const w=760,h=560, top=70,bottom=470,left=70,right=690;
-  const n=room.lineCount,rowCount=room.rowCount;
-  const xs=Array.from({length:n},(_,i)=> left + (right-left)*(i/(n-1)));
-  const rowY=r => top + (bottom-top)*((r+1)/(rowCount+1));
-  state.participants.forEach(p=>{
-    let pos = Number(p.selectedLine), d=`M ${xs[pos]} ${top}`;
-    [...state.lines].sort((a,b)=>a.row-b.row || a.col-b.col).forEach(l=>{
-      const y=rowY(l.row);
-      d += ` L ${xs[pos]} ${y}`;
-      if(l.col===pos){ pos++; d += ` L ${xs[pos]} ${y}`; }
-      else if(l.col+1===pos){ pos--; d += ` L ${xs[pos]} ${y}`; }
-    });
-    d += ` L ${xs[pos]} ${bottom}`;
-    paths.push({uid:p.uid,d});
-  });
-  return paths;
-}
+    function randId() {
+        return Math.random().toString(36).slice(2, 8).toUpperCase();
+    }
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+    function nowPlusHours(h) {
+        return Timestamp.fromDate(new Date(Date.now() + h * 60 * 60 * 1000));
+    }
+    function localUrl(roomId, host=false) {
+        const base = location.href.split('?')[0];
+        return `${base}?room=${encodeURIComponent(roomId)}${host ? '&host=1' : ''}`;
+    }
+    function qrUrl(url) {
+        return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
+    }
+    function cleanUnsubs() {
+        state.unsub.forEach(fn => {
+            try {
+                fn()
+            } catch (e) {}
+        });
+        state.unsub = [];
+    }
+    function showMsg(html, cls='notice') {
+        return `<div class="${cls}">${html}</div>`;
+    }
+    function roomRef() {
+        return doc(db, 'rooms', roomIdFromUrl);
+    }
+    function participantsRef() {
+        return collection(db, 'rooms', roomIdFromUrl, 'participants');
+    }
+    function linesRef() {
+        return collection(db, 'rooms', roomIdFromUrl, 'horizontalLines');
+    }
+    function resultsRef() {
+        return collection(db, 'rooms', roomIdFromUrl, 'results');
+    }
+    function isExpired(room) {
+        return room?.expiresAt?.toDate && room.expiresAt.toDate().getTime() < Date.now();
+    }
 
-async function bindHostButtons(room){
-  document.getElementById('makeBoardBtn')?.addEventListener('click', async()=>{
-    try{
-      const generated = generateRandomLines(room.lineCount, room.rowCount, room.randomLineCount);
-      const batch = writeBatch(db);
-      generated.forEach(l=> batch.set(doc(linesRef()),{...l,by:uid,type:'random',round:-1,createdAt:serverTimestamp()}));
-      batch.update(roomRef(),{status:'created',lastActionAt:serverTimestamp()});
-      await batch.commit();
-    }catch(e){alert(e.message)}
-  });
-  document.getElementById('orderBtn')?.addEventListener('click', async()=>{
-    try{
-      const ps = state.participants;
-      const order = shuffle(ps.map(p=>p.uid));
-      const batch = writeBatch(db);
-      order.forEach((id,i)=> batch.update(doc(db,'rooms',room.id,'participants',id),{order:i,lineDrawCount:0}));
-      batch.update(roomRef(),{turnOrder:order,currentTurnIndex:0,currentRound:0,allLinesDone:false,status:'playing',lastActionAt:serverTimestamp()});
-      await batch.commit();
-    }catch(e){alert(e.message)}
-  });
-  document.getElementById('publishBtn')?.addEventListener('click', async()=>{
-    await updateDoc(roomRef(),{resultsHidden:false,resultsPublished:true,status:'finished',lastActionAt:serverTimestamp()});
-  });
-  document.getElementById('undoBtn')?.addEventListener('click', async()=>{
-    const players = state.lines.filter(l=>l.type==='player');
-    const last = players[players.length-1];
-    if(!last) return;
-    if(!confirm('直前の線を戻しますか？')) return;
-    const p = state.participants.find(x=>x.uid===last.by);
-    const batch = writeBatch(db);
-    batch.delete(doc(db,'rooms',room.id,'horizontalLines',last.id));
-    if(p) batch.update(doc(db,'rooms',room.id,'participants',p.uid),{lineDrawCount: increment(-1)});
-    const idx = Math.max(0,(room.turnOrder||[]).indexOf(last.by));
-    batch.update(roomRef(),{currentTurnIndex:idx,allLinesDone:false,status:'playing',lastActionAt:serverTimestamp()});
-    await batch.commit();
-  });
-  document.getElementById('deleteBtn')?.addEventListener('click', async()=>{
-    if(!confirm('この部屋データを削除します。参加者名や線も消えます。よろしいですか？')) return;
-    await deleteRoomDeep(room.id);
-    location.href = location.href.split('?')[0];
-  });
-}
-function generateRandomLines(lineCount,rowCount,count){
-  const lines=[]; let tries=0;
-  while(lines.length<count && tries<count*30){
-    tries++;
-    const row = Math.floor(Math.random()*rowCount);
-    const col = Math.floor(Math.random()*(lineCount-1));
-    const bad = lines.some(l=>l.row===row && (l.col===col || l.col===col-1 || l.col===col+1));
-    if(!bad) lines.push({row,col});
-  }
-  return lines;
-}
-async function deleteRoomDeep(roomId){
-  const batch = writeBatch(db);
-  const refs = [participantsRef(), linesRef(), resultsRef(), collection(db,'rooms',roomId,'turns')];
-  for(const c of refs){ const snap = await getDocs(c); snap.forEach(d=>batch.delete(d.ref)); }
-  batch.delete(doc(db,'rooms',roomId));
-  await batch.commit();
-}
-</script>
+    onAuthStateChanged(auth, async user => {
+        if (!user) {
+            await signInAnonymously(auth);
+            return;
+        }
+        uid = user.uid;
+        if (roomIdFromUrl) {
+            attachRoom();
+        } else {
+            renderCreateRoom();
+        }
+    });
+
+    function renderCreateRoom() {
+        cleanUnsubs();
+        appEl.innerHTML = `
+            <div class="grid two">
+              <section class="card side">
+                <h2>① 必要な情報を入力</h2>
+                <label>部屋名</label>
+                <input id="title" value="みんなであみだくじ">
+                <div class="row">
+                  <div><label>人数</label><select id="lineCount">${[3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option ${n === 6 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+                  <div><label>1人が引く線</label><select id="linesPerPlayer"><option value="1">1本</option><option value="2">2本</option></select></div>
+                </div>
+                <div class="row">
+                  <div><label>段数</label><select id="rowCount">${[10, 12, 14, 16, 18, 20, 22, 24].map(n => `<option ${n === 16 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+                  <div><label>最初のランダム線</label><select id="randomLineCount">${[4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40].map(n => `<option ${n === 12 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+                </div>
+                <label>結果</label>
+                <textarea id="resultsText">大当たり
+        当たり
+        お楽しみ
+        もう一回
+        参加賞
+        ありがとう</textarea>
+                <p class="small">結果は人数分だけ使います。足りない場合は「結果1」のように補います。</p>
+                <div class="btns"><button id="createRoomBtn">② 部屋を作る</button></div>
+              </section>
+              <section class="card">
+                <h2>この画面でできること</h2>
+                ${showMsg('部屋を作ると、参加者用QRコードが表示されます。参加者はスマホで読み取って名前と縦線を選びます。', 'notice ok')}
+                <p>ローカル版v5ポップの操作をもとに、複数人参加用にした版です。</p>
+              </section>
+            </div>`;
+        document.getElementById('createRoomBtn').onclick = createRoom;
+    }
+
+    async function createRoom() {
+        const btn = document.getElementById('createRoomBtn');
+        try {
+            btn.disabled = true;
+            btn.textContent = '部屋を作成中...';
+
+            const roomId = randId();
+            const lineCount = Number(document.getElementById('lineCount').value);
+            const rowCount = Number(document.getElementById('rowCount').value);
+            const linesPerPlayer = Number(document.getElementById('linesPerPlayer').value);
+            const randomLineCount = Number(document.getElementById('randomLineCount').value);
+            let labels = document.getElementById('resultsText').value.split('\n').map(s => s.trim()).filter(Boolean);
+            while (labels.length < lineCount)
+                labels.push(`結果${labels.length + 1}`);
+            labels = labels.slice(0, lineCount);
+
+            const r = doc(db, 'rooms', roomId);
+            const createdAt = Timestamp.now();
+            await setDoc(r, {
+                title: document.getElementById('title').value.trim() || 'みんなであみだくじ',
+                status: 'waiting',
+                hostUid: uid,
+                lineCount,
+                maxPlayers: lineCount,
+                rowCount,
+                linesPerPlayer,
+                randomLineCount,
+                currentTurnIndex: 0,
+                currentRound: 0,
+                turnOrder: [],
+                resultsHidden: true,
+                resultsPublished: false,
+                allLinesDone: false,
+                createdAt,
+                expiresAt: nowPlusHours(24),
+                lastActionAt: createdAt
+            });
+
+            const batch = writeBatch(db);
+            labels.forEach((label, index) => batch.set(doc(db, 'rooms', roomId, 'results', String(index)), {
+                index,
+                label,
+                revealed: false
+            }));
+            await batch.commit();
+
+            location.href = localUrl(roomId, true);
+        } catch (e) {
+            console.error(e);
+            btn.disabled = false;
+            btn.textContent = '② 部屋を作る';
+            const msg = document.createElement('div');
+            msg.className = 'notice bad';
+            msg.innerHTML = `部屋を作れませんでした。Authenticationの匿名ログイン、Firestoreルール、Authorized domainsを確認してください。<br><span class="small">エラー: ${esc(e.code || e.message || e)}</span>`;
+            btn.closest('.card').appendChild(msg);
+        }
+    }
+
+    function attachRoom() {
+        cleanUnsubs();
+        appEl.innerHTML = `<section class="card">${showMsg('読み込み中です。', 'notice')}</section>`;
+        state.unsub.push(onSnapshot(roomRef(), snap => {
+            if (!snap.exists()) {
+                appEl.innerHTML = `<section class="card">${showMsg('この部屋は見つかりません。', 'notice bad')}<a class="buttonLink secondary" href="${location.href.split('?')[0]}">新しく作る</a></section>`;
+                return;
+            }
+            state.room = {
+                id: snap.id,
+                ...snap.data()
+            };
+            renderRoom();
+        }));
+        state.unsub.push(onSnapshot(query(participantsRef(), orderBy('joinedAt', 'asc')), snap => {
+            state.participants = snap.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+            }));
+            renderRoom();
+        }));
+        state.unsub.push(onSnapshot(query(linesRef(), orderBy('createdAt', 'asc')), snap => {
+            state.lines = snap.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+            }));
+            renderRoom();
+        }));
+        state.unsub.push(onSnapshot(query(resultsRef(), orderBy('index', 'asc')), snap => {
+            state.results = snap.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+            }));
+            renderRoom();
+        }));
+    }
+
+    function renderRoom() {
+        const room = state.room;
+        if (!room || !uid)
+            return;
+        const amHost = room.hostUid === uid && isHostUrl;
+        if (isExpired(room)) {
+            appEl.innerHTML = `<section class="card">${showMsg('この部屋は24時間の期限を過ぎています。必要なら新しく作り直してください。', 'notice bad')}<div class="btns"><a class="buttonLink secondary" href="${location.href.split('?')[0]}">新しく作る</a></div></section>`;
+            return;
+        }
+        if (amHost)
+            renderHost(room);
+        else
+            renderParticipant(room);
+    }
+
+    function renderHost(room) {
+        const joinUrl = localUrl(room.id, false);
+        const hostUrl = localUrl(room.id, true);
+        appEl.innerHTML = `
+            <div class="grid two">
+              <section class="card side noPrint">
+                <h2>主催者画面</h2>
+                <p class="pill">部屋ID ${esc(room.id)}</p>
+                <p class="pill">状態 ${esc(room.status)}</p>
+                <div class="qrBox"><img src="${qrUrl(joinUrl)}" alt="参加用QR"><p class="small">参加者用QRコード</p></div>
+                <label>参加者用URL</label><input readonly value="${esc(joinUrl)}" onclick="this.select()">
+                <label>主催者用URL</label><input readonly value="${esc(hostUrl)}" onclick="this.select()">
+                <h3>参加者</h3>
+                <div class="list">${participantsHtml()}</div>
+                <div class="btns">
+                  <button class="green" id="makeBoardBtn" ${room.status !== 'waiting' ? 'disabled' : ''}>② あみだくじの作成</button>
+                  <button class="secondary" id="orderBtn" ${state.participants.length < 2 || room.status === 'waiting' ? 'disabled' : ''}>③ 順番を決める</button>
+                  <button class="warn" id="undoBtn" ${state.lines.filter(l => l.type === 'player').length === 0 ? 'disabled' : ''}>直前の線を戻す</button>
+                  <button id="publishBtn" ${room.resultsPublished ? 'disabled' : ''}>⑤ 結果発表</button>
+                  <button class="secondary" onclick="window.print()">⑥ 印刷</button>
+                  <button class="danger" id="deleteBtn">部屋データを削除</button>
+                </div>
+              </section>
+              <section class="card">
+                ${statusHtml(room)}
+                ${boardHtml(room, false)}
+                ${resultsHtml(room)}
+              </section>
+            </div>`;
+        bindHostButtons(room);
+    }
+
+    function renderParticipant(room) {
+        const me = state.participants.find(p => p.uid === uid);
+        if (!me) {
+            renderJoin(room);
+            return;
+        }
+        appEl.innerHTML = `
+            <div class="grid two">
+              <section class="card side noPrint">
+                <h2>参加者画面</h2>
+                <p class="pill">あなた ${esc(me.name)}</p>
+                <p class="pill">選んだ縦線 ${Number(me.selectedLine) + 1}</p>
+                <h3>参加者</h3>
+                <div class="list">${participantsHtml()}</div>
+                ${turnMessage(room, me)}
+              </section>
+              <section class="card">
+                ${statusHtml(room)}
+                ${boardHtml(room, true)}
+                ${resultsHtml(room, me)}
+              </section>
+            </div>`;
+        bindSlotClicks(room, me);
+    }
+
+    function renderJoin(room) {
+        const used = new Set(state.participants.map(p => p.selectedLine));
+        const full = state.participants.length >= room.maxPlayers;
+        appEl.innerHTML = `
+            <section class="card">
+              <h2>参加する</h2>
+              ${full ? showMsg('参加人数が上限に達しています。', 'notice bad') : showMsg('名前を入れて、好きな縦線を選んでください。', 'notice ok')}
+              <label>お名前</label><input id="joinName" maxlength="20" ${full ? 'disabled' : ''}>
+              <label>選ぶ縦線</label><select id="joinLine" ${full ? 'disabled' : ''}>${Array.from({length: room.lineCount}, (_, i) => `<option value="${i}" ${used.has(i) ? 'disabled' : ''}>${i + 1}番 ${used.has(i) ? '使用中' : ''}</option>`).join('')}</select>
+              <div class="btns"><button id="joinBtn" ${full ? 'disabled' : ''}>参加する</button></div>
+            </section>`;
+        document.getElementById('joinBtn')?.addEventListener('click', async () => {
+            const name = document.getElementById('joinName').value.trim();
+            const selectedLine = Number(document.getElementById('joinLine').value);
+            if (!name) {
+                alert('名前を入力してください。');
+                return;
+            }
+            await setDoc(doc(db, 'rooms', room.id, 'participants', uid), {
+                uid,
+                name,
+                selectedLine,
+                order: 999,
+                joinedAt: serverTimestamp(),
+                isHost: false,
+                lineDrawCount: 0
+            });
+        });
+    }
+
+    function statusHtml(room) {
+        const current = currentParticipant(room);
+        const done = state.participants.reduce((sum, p) => sum + Number(p.lineDrawCount || 0), 0);
+        const total = state.participants.length * Number(room.linesPerPlayer || 1);
+        return `<div class="notice ${room.allLinesDone ? 'ok' : ''}">
+            <div>現在の状態：${esc(statusLabel(room.status))}</div>
+            <div>現在の番：${current ? esc(current.name) : 'まだ決まっていません'}</div>
+            <div>線の進み具合：${done} / ${total}</div>
+          </div>`;
+    }
+    function statusLabel(s) {
+        return ( {
+                waiting: '参加者待ち',
+                created: 'あみだ作成済み',
+                ordering: '順番決定済み',
+                playing: '線を引いています',
+                finished: '結果発表済み',
+                expired: '期限切れ'
+            }[s] || s) ;
+    }
+    function participantsHtml() {
+        const ordered = [...state.participants].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+        const current = currentParticipant(state.room);
+        return ordered.map(p => `<div class="listItem ${current?.uid === p.uid ? 'current' : ''}">${esc(p.name)}　縦線${Number(p.selectedLine) + 1}　${p.order < 999 ? `順番${Number(p.order) + 1}` : '未定'}　${p.lineDrawCount || 0}本</div>`).join('') || '<div class="small">まだ参加者はいません。</div>';
+    }
+    function currentParticipant(room) {
+        if (!room?.turnOrder?.length)
+            return null;
+        const id = room.turnOrder[room.currentTurnIndex] ?? null;
+        return state.participants.find(p => p.uid === id) || null;
+    }
+    function turnMessage(room, me) {
+        if (room.resultsPublished)
+            return showMsg('結果が発表されました。下で確認できます。', 'notice ok');
+        if (room.allLinesDone)
+            return showMsg('全員が線を引き終わりました。結果発表を待っています。', 'notice ok');
+        const cur = currentParticipant(room);
+        if (room.status !== 'playing')
+            return showMsg('主催者が順番を決めるまで待ってください。', 'notice');
+        if (cur?.uid === me.uid)
+            return showMsg('あなたの番です。あみだくじの中のピンク色の場所をタップして、横線を1本入れてください。', 'notice ok');
+        return showMsg(`今は ${esc(cur?.name || '次の人')} さんの番です。`, 'notice');
+    }
+
+    function boardHtml(room, interactive) {
+        const w = 760,
+            h = 560,
+            top = 70,
+            bottom = 470,
+            left = 70,
+            right = 690;
+        const n = room.lineCount,
+            rowCount = room.rowCount;
+        const xs = Array.from({
+            length: n
+        }, (_, i) => left + (right - left) * (i / (n - 1)));
+        const rowY = r => top + (bottom - top) * ((r + 1) / (rowCount + 1));
+        let svg = `<div class="boardWrap"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="あみだくじ">`;
+        const byLine = new Map();
+        state.participants.forEach(p => byLine.set(p.selectedLine, p.name));
+        xs.forEach((x, i) => {
+            svg += `<text class="nameText" x="${x}" y="32">${esc(byLine.get(i) || `${i + 1}`)}</text>`;
+            svg += `<line class="vline" x1="${x}" y1="${top}" x2="${x}" y2="${bottom}"></line>`;
+        });
+        state.lines.forEach(l => {
+            if (l.col >= 0 && l.col < n - 1)
+                svg += `<line class="hline ${l.type === 'player' ? 'player' : 'random'}" x1="${xs[l.col]}" y1="${rowY(l.row)}" x2="${xs[l.col + 1]}" y2="${rowY(l.row)}"></line>`;
+        });
+        if (room.resultsPublished) {
+            tracedPaths(room).forEach(path => {
+                svg += `<path class="pathLine" d="${path.d}"></path>`
+            });
+        }
+        for (let r = 0; r < rowCount; r++) {
+            for (let c = 0; c < n - 1; c++) {
+                const valid = isValidSlot(r, c, room);
+                svg += `<g class="slot ${valid ? 'active' : 'disabled'}" data-row="${r}" data-col="${c}"><rect class="slotRect" x="${xs[c] + 7}" y="${rowY(r) - 18}" width="${xs[c + 1] - xs[c] - 14}" height="36" rx="18"></rect></g>`;
+            }
+        }
+        state.results.forEach(res => {
+            const x = xs[res.index];
+            svg += `<text class="resultText" x="${x}" y="528">${room.resultsPublished ? esc(res.label) : '？'}</text>`;
+        });
+        svg += `</svg></div>`;
+        return svg;
+    }
+    function isValidSlot(row, col, room) {
+        if (row < 0 || col < 0 || col >= room.lineCount - 1)
+            return false;
+        return !state.lines.some(l => l.row === row && (l.col === col || l.col === col - 1 || l.col === col + 1));
+    }
+    function bindSlotClicks(room, me) {
+        if (room.status !== 'playing' || room.allLinesDone || room.resultsPublished)
+            return;
+        const cur = currentParticipant(room);
+        if (cur?.uid !== me.uid)
+            return;
+        document.querySelectorAll('.slot.active').forEach(el => {
+            el.addEventListener('click', async () => {
+                const row = Number(el.dataset.row),
+                    col = Number(el.dataset.col);
+                if (!isValidSlot(row, col, room))
+                    return;
+                await addPlayerLine(room, me, row, col);
+            }, {
+                once: true
+            });
+        });
+    }
+    async function addPlayerLine(room, me, row, col) {
+        try {
+            const batch = writeBatch(db);
+            batch.set(doc(linesRef()), {
+                row,
+                col,
+                by: uid,
+                type: 'player',
+                round: room.currentRound || 0,
+                createdAt: serverTimestamp()
+            });
+            const pRef = doc(db, 'rooms', room.id, 'participants', uid);
+            batch.update(pRef, {
+                lineDrawCount: increment(1)
+            });
+            const simulated = state.participants.map(p => p.uid === uid ? {
+                ...p,
+                lineDrawCount: (p.lineDrawCount || 0) + 1
+            } : p);
+            const next = nextTurnIndex(room, simulated);
+            const roomUpdates = {
+                lastActionAt: serverTimestamp()
+            };
+            if (next === -1) {
+                roomUpdates.allLinesDone = true;
+            }
+            else {
+                roomUpdates.currentTurnIndex = next;
+                roomUpdates.currentRound = Math.floor(totalDrawn(simulated) / Math.max(1, simulated.length));
+            }
+            batch.update(roomRef(), roomUpdates);
+            await batch.commit();
+        } catch (e) {
+            alert('線の保存に失敗しました。ルール設定を確認してください。\n' + e.message);
+        }
+    }
+    function totalDrawn(ps) {
+        return ps.reduce((s, p) => s + Number(p.lineDrawCount || 0), 0);
+    }
+    function nextTurnIndex(room, ps) {
+        const order = room.turnOrder || [];
+        if (!order.length)
+            return -1;
+        const max = Number(room.linesPerPlayer || 1);
+        let start = (Number(room.currentTurnIndex || 0) + 1) % order.length;
+        for (let step = 0; step < order.length; step++) {
+            const idx = (start + step) % order.length;
+            const p = ps.find(x => x.uid === order[idx]);
+            if (p && Number(p.lineDrawCount || 0) < max)
+                return idx;
+        }
+        return -1;
+    }
+    function resultsHtml(room, me=null) {
+        if (!room.resultsPublished)
+            return `<div class="resultGrid"><div class="resultCard">結果はまだ隠れています。</div></div>`;
+        const rows = state.participants.map(p => {
+            const goal = traceGoal(room, p.selectedLine);
+            const res = state.results.find(r => r.index === goal);
+            const mine = me && p.uid === me.uid;
+            return `<div class="resultCard" style="${mine ? 'border-width:4px' : ''}">${esc(p.name)} → ${esc(res?.label || `結果${goal + 1}`)}</div>`;
+        }).join('');
+        return `<h2>⑤ 結果発表</h2><div class="resultGrid">${rows}</div><div class="btns footerBtns noPrint"><button class="secondary" onclick="window.print()">⑥ 印刷</button></div>`;
+    }
+    function traceGoal(room, startLine) {
+        let pos = Number(startLine);
+        const sorted = [...state.lines].sort((a, b) => a.row - b.row || a.col - b.col);
+        sorted.forEach(l => {
+            if (l.col === pos)
+                pos++;
+            else if (l.col + 1 === pos)
+                pos--;
+        });
+        return pos;
+    }
+    function tracedPaths(room) {
+        const paths = [];
+        const w = 760,
+            h = 560,
+            top = 70,
+            bottom = 470,
+            left = 70,
+            right = 690;
+        const n = room.lineCount,
+            rowCount = room.rowCount;
+        const xs = Array.from({
+            length: n
+        }, (_, i) => left + (right - left) * (i / (n - 1)));
+        const rowY = r => top + (bottom - top) * ((r + 1) / (rowCount + 1));
+        state.participants.forEach(p => {
+            let pos = Number(p.selectedLine),
+                d = `M ${xs[pos]} ${top}`;
+            [...state.lines].sort((a, b) => a.row - b.row || a.col - b.col).forEach(l => {
+                const y = rowY(l.row);
+                d += ` L ${xs[pos]} ${y}`;
+                if (l.col === pos) {
+                    pos++;
+                    d += ` L ${xs[pos]} ${y}`;
+                }
+                else if (l.col + 1 === pos) {
+                    pos--;
+                    d += ` L ${xs[pos]} ${y}`;
+                }
+            });
+            d += ` L ${xs[pos]} ${bottom}`;
+            paths.push({
+                uid: p.uid,
+                d
+            });
+        });
+        return paths;
+    }
+
+    async function bindHostButtons(room) {
+        document.getElementById('makeBoardBtn')?.addEventListener('click', async () => {
+            try {
+                const generated = generateRandomLines(room.lineCount, room.rowCount, room.randomLineCount);
+                const batch = writeBatch(db);
+                generated.forEach(l => batch.set(doc(linesRef()), {
+                    ...l,
+                    by: uid,
+                    type: 'random',
+                    round: -1,
+                    createdAt: serverTimestamp()
+                }));
+                batch.update(roomRef(), {
+                    status: 'created',
+                    lastActionAt: serverTimestamp()
+                });
+                await batch.commit();
+            } catch (e) {
+                alert(e.message)
+            }
+        });
+        document.getElementById('orderBtn')?.addEventListener('click', async () => {
+            try {
+                const ps = state.participants;
+                const order = shuffle(ps.map(p => p.uid));
+                const batch = writeBatch(db);
+                order.forEach((id, i) => batch.update(doc(db, 'rooms', room.id, 'participants', id), {
+                    order: i,
+                    lineDrawCount: 0
+                }));
+                batch.update(roomRef(), {
+                    turnOrder: order,
+                    currentTurnIndex: 0,
+                    currentRound: 0,
+                    allLinesDone: false,
+                    status: 'playing',
+                    lastActionAt: serverTimestamp()
+                });
+                await batch.commit();
+            } catch (e) {
+                alert(e.message)
+            }
+        });
+        document.getElementById('publishBtn')?.addEventListener('click', async () => {
+            await updateDoc(roomRef(), {
+                resultsHidden: false,
+                resultsPublished: true,
+                status: 'finished',
+                lastActionAt: serverTimestamp()
+            });
+        });
+        document.getElementById('undoBtn')?.addEventListener('click', async () => {
+            const players = state.lines.filter(l => l.type === 'player');
+            const last = players[players.length - 1];
+            if (!last)
+                return;
+            if (!confirm('直前の線を戻しますか？'))
+                return;
+            const p = state.participants.find(x => x.uid === last.by);
+            const batch = writeBatch(db);
+            batch.delete(doc(db, 'rooms', room.id, 'horizontalLines', last.id));
+            if (p)
+                batch.update(doc(db, 'rooms', room.id, 'participants', p.uid), {
+                    lineDrawCount: increment(-1)
+                });
+            const idx = Math.max(0, (room.turnOrder || []).indexOf(last.by));
+            batch.update(roomRef(), {
+                currentTurnIndex: idx,
+                allLinesDone: false,
+                status: 'playing',
+                lastActionAt: serverTimestamp()
+            });
+            await batch.commit();
+        });
+        document.getElementById('deleteBtn')?.addEventListener('click', async () => {
+            if (!confirm('この部屋データを削除します。参加者名や線も消えます。よろしいですか？'))
+                return;
+            await deleteRoomDeep(room.id);
+            location.href = location.href.split('?')[0];
+        });
+    }
+    function generateRandomLines(lineCount, rowCount, count) {
+        const lines = [];
+        let tries = 0;
+        while (lines.length < count && tries < count * 30) {
+            tries++;
+            const row = Math.floor(Math.random() * rowCount);
+            const col = Math.floor(Math.random() * (lineCount - 1));
+            const bad = lines.some(l => l.row === row && (l.col === col || l.col === col - 1 || l.col === col + 1));
+            if (!bad)
+                lines.push({
+                    row,
+                    col
+                });
+        }
+        return lines;
+    }
+    async function deleteRoomDeep(roomId) {
+        const batch = writeBatch(db);
+        const refs = [participantsRef(), linesRef(), resultsRef(), collection(db, 'rooms', roomId, 'turns')];
+        for (const c of refs) {
+            const snap = await getDocs(c);
+            snap.forEach(d => batch.delete(d.ref));
+        }
+        batch.delete(doc(db, 'rooms', roomId));
+        await batch.commit();
+    }
+    </script>
 </body>
 </html>
